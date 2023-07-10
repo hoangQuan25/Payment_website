@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Form</title>
+</head>
+<body>
+<h1>Payment Form</h1>
+<form id="paymentForm">
+    <label for="employeeName">Thu ngân:</label>
+    <select name="employeeName" id="employeeName" required>
+        <option value="Nguyen Hoang Quan">Nguyễn Hoàng Quân</option>
+        <option value="Le Quoc Viet">Lê Quốc Việt</option>
+        <option value="Vo Son Long">Võ Sơn Long</option>
+        <!-- Add more options as needed -->
+    </select>
+    <br/>
+    <label for="productName">Product Name:</label>
+    <select name="productName" id="productName" required>
+        <option value="Banh mi trung">Bánh mì trứng</option>
+        <option value="Banh mi bo">Bánh mì bò</option>
+        <option value="Banh mi ruoc">Bánh mì ruốc</option>
+        <!-- Add more options as needed -->
+    </select>
+    <br/>
+    <label for="quantity">Quantity:</label>
+    <input type="number" name="quantity" id="quantity" required/>
+    <br/>
+    <button type="button" onclick="confirmPayment()">Confirm</button>
+    <button type="submit">Submit</button>
+</form>
+
+<div id="paymentDetails"></div>
+
+<script>
+    // JavaScript code for handling form submission
+    var paymentData = [];
+
+    function confirmPayment() {
+        var productName = document.getElementById('productName').value;
+        var quantity = parseInt(document.getElementById('quantity').value);
+
+        var paymentDetail = {
+            productName: productName,
+            quantity: quantity
+        };
+
+        paymentData.push(paymentDetail);
+
+        var paymentDetailsDiv = document.getElementById('paymentDetails');
+        var detailsHtml = '';
+
+        paymentData.forEach(function (detail, index) {
+            detailsHtml += 'Product: ' + detail.productName + ', Quantity: ' + detail.quantity + '<br/>';
+        });
+
+        paymentDetailsDiv.innerHTML = detailsHtml;
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent form submission
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/process_payment');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    // Payment processed successfully
+                    console.log(xhr.responseText);
+                    alert('Payment processed successfully.');
+                    // Reset form fields and payment details
+                    document.getElementById('productName').value = '';
+                    document.getElementById('quantity').value = '';
+                    document.getElementById('paymentDetails').innerHTML = '';
+                    paymentData = [];
+                } else {
+                    // Error occurred during payment processing
+                    alert('An error occurred while processing the payment.');
+                    console.error(xhr.responseText);
+                }
+            }
+        };
+
+        // Retrieve form values
+        var employeeName = document.getElementById('employeeName').value;
+        var totalCost = calculateTotalCost();
+
+        // Send the payment data as JSON
+        var data = JSON.stringify({
+            employeeName: employeeName,
+            paymentData: paymentData,
+            totalCost: totalCost
+        });
+
+        xhr.send(data);
+    });
+
+    function calculateTotalCost() {
+        var totalCost = 0;
+
+        paymentData.forEach(function (detail) {
+            var productName = detail.productName;
+            var quantity = detail.quantity;
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/get_product_price?productName=' + encodeURIComponent(productName), false);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send();
+
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                var product = JSON.parse(xhr.responseText);
+                var price = parseFloat(product.price);
+                totalCost += price * quantity;
+            }
+        });
+
+        return totalCost;
+    }
+</script>
+</body>
+</html>
